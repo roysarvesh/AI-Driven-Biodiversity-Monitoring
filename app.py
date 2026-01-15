@@ -17,8 +17,7 @@ st.write(
     "This project supports **SDG 15 – Life on Land**."
 )
 
-
-MODEL_PATH = "model/biodiversity_model.h5"
+MODEL_PATH = "model/biodiversity_model.keras"
 
 @st.cache_resource
 def load_model():
