@@ -4,18 +4,12 @@ import numpy as np
 from PIL import Image
 import os
 
-# ==============================
-# PAGE CONFIG
-# ==============================
 st.set_page_config(
     page_title="AI-Driven Biodiversity Monitoring",
     layout="wide",
     page_icon="🌿"
 )
 
-# ==============================
-# SIDEBAR
-# ==============================
 st.sidebar.title("🌍 Project Information")
 st.sidebar.markdown("""
 **Project:**  
@@ -49,9 +43,6 @@ st.sidebar.caption(
     "Predictions are for decision support only and may require human verification."
 )
 
-# ==============================
-# MAIN TITLE
-# ==============================
 st.markdown(
     """
     <h1 style='text-align: center;'>🌿 AI-Driven Biodiversity Monitoring</h1>
@@ -62,29 +53,22 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-st.write("")
 st.write(
     "Upload an animal image to identify the species using a **Deep Learning model**. "
     "This application demonstrates how AI can support biodiversity conservation."
 )
 
-# ==============================
-# MODEL LOADING
-# ==============================
 MODEL_PATH = "model/biodiversity_model.keras"
 
 @st.cache_resource
 def load_model():
     if not os.path.exists(MODEL_PATH):
-        st.error("❌ Model file not found.")
+        st.error("Model file not found.")
         st.stop()
     return tf.keras.models.load_model(MODEL_PATH)
 
 model = load_model()
 
-# ==============================
-# CLASS LABELS
-# ==============================
 CLASS_NAMES = [
     "Dog (Cane)",
     "Chicken (Gallina)",
@@ -98,14 +82,8 @@ CLASS_NAMES = [
     "Butterfly (Farfalla)"
 ]
 
-# ==============================
-# FILE UPLOAD
-# ==============================
 st.markdown("### 📤 Upload an Animal Image")
-uploaded_file = st.file_uploader(
-    "",
-    type=["jpg", "jpeg", "png"]
-)
+uploaded_file = st.file_uploader("", type=["jpg", "jpeg", "png"])
 
 if uploaded_file:
     col1, col2 = st.columns([1, 1])
@@ -114,42 +92,45 @@ if uploaded_file:
         image = Image.open(uploaded_file).convert("RGB")
         st.image(image, caption="Uploaded Image", use_column_width=True)
 
-    # Preprocess
     img = image.resize((224, 224))
     img_array = np.array(img) / 255.0
     img_array = np.expand_dims(img_array, axis=0)
 
-    # Predict
     prediction = model.predict(img_array)[0]
-
-    # Top-3 predictions
     top_indices = prediction.argsort()[-3:][::-1]
 
     with col2:
         st.markdown("### 🧠 Prediction Results")
 
-        for i, idx in enumerate(top_indices):
-            st.write(
-                f"**{i+1}. {CLASS_NAMES[idx]}** — {prediction[idx]*100:.2f}%"
-            )
+        best_idx = top_indices[0]
+        best_conf = prediction[best_idx]
 
-        confidence = prediction[top_indices[0]]
+        st.success(
+            f"**Predicted Species:** {CLASS_NAMES[best_idx]} "
+            f"({best_conf * 100:.2f}%)"
+        )
 
-        # Confidence interpretation
+        st.markdown("**Other possible species:**")
+        shown = 0
+        for idx in top_indices[1:]:
+            conf = prediction[idx]
+            if conf > 0.01:
+                st.write(f"- {CLASS_NAMES[idx]} — {conf * 100:.2f}%")
+                shown += 1
+
+        if shown == 0:
+            st.caption("No other significant predictions detected.")
+
         st.markdown("---")
-        if confidence >= 0.85:
-            st.success("🔹 High confidence prediction (Reliable)")
-        elif confidence >= 0.6:
-            st.warning("🔸 Medium confidence (Verification recommended)")
+        if best_conf >= 0.85:
+            st.success("High confidence prediction (Reliable)")
+        elif best_conf >= 0.6:
+            st.warning("Medium confidence (Verification recommended)")
         else:
-            st.error("🔻 Low confidence (Manual review required)")
+            st.error("Low confidence (Manual review required)")
 
-# ==============================
-# FOOTER
-# ==============================
 st.markdown("---")
 st.caption(
-    "This application demonstrates **responsible AI usage** for biodiversity conservation. "
-    "Predictions should be used as decision-support tools, aligned with **UN SDG 15 – Life on Land**."
+    "This application demonstrates responsible AI usage for biodiversity conservation "
+    "aligned with UN SDG 15 – Life on Land."
 )
-
